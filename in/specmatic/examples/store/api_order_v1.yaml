@@ -199,6 +199,7 @@ paths:
                   name: 'XYZ Laptop'
                   type: 'gadget'
                   inventory: 10
+                  description: false
     get:
       summary: Search for products
       operationId: get-products

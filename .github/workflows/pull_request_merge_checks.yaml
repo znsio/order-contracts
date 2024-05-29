@@ -50,7 +50,7 @@ jobs:
       - name: Setup specmatic
         uses: airslate-oss/setup-specmatic@v1
         with:
-          specmatic-version: 1.3.16
+          specmatic-version: 1.3.20
 
       - name: Run backward compatibility check on changed files
         if: steps.changed-files-specific.outputs.any_changed == 'true'
