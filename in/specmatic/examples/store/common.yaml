@@ -10,7 +10,7 @@ components:
       type: object
       properties:
         name:
-          type: string
+          type: number 
         type:
           $ref: '#/components/schemas/ProductType'
         inventory:
