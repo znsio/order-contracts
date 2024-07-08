@@ -5,7 +5,7 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
-  /products:
+  /products/:
     summary: Create a new product
     post:
       requestBody:
