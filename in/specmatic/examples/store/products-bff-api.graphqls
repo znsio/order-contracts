@@ -11,7 +11,7 @@ enum ProductType {
 }
 
 type Query {
-  findAvailableProducts(type: ProductType!, pageSize: Int): [Product!]!
+  findAvailableProducts(type: String!, pageSize: Int): [Product!]!
 }
 
 type Mutation {
