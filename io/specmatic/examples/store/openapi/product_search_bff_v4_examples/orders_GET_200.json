@@ -1,0 +1,22 @@
+{
+    "http-request": {
+        "path": "/orders",
+        "method": "GET",
+        "query": {
+            "orderId": "100"
+        },
+        "body": ""
+    },
+    "http-response": {
+        "status": 200,
+        "body": [
+            {
+                "id": 1,
+                "productid": 1,
+                "count": 2,
+                "status": "completed"
+            }
+        ],
+        "status-text": "OK"
+    }
+}

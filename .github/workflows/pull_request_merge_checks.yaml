@@ -78,3 +78,9 @@ jobs:
             --entrypoint /bin/sh \
             znsio/specmatic-graphql-trial \
             -c "git config --global --add safe.directory /central-contract-repo && cd /central-contract-repo && java -jar /usr/bin/specmatic-graphql.jar backwardCompatibilityCheck"
+
+      - name: Run OpenAPI Examples validation check
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: |
+          docker run -v "$(pwd):/central-contract-repo:rw" znsio/specmatic examples validate \
+           --contract-file /central-contract-repo/io/specmatic/examples/store/openapi/product_search_bff_v4.yaml
