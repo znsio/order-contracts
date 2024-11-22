@@ -1,0 +1,24 @@
+{
+    "http-request": {
+        "path": "/products",
+        "method": "POST",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "name": "iPhone",
+            "type": "gadget",
+            "inventory": "100"
+        }
+    },
+    "http-response": {
+        "status": 201,
+        "body": {
+            "id": 574
+        },
+        "status-text": "Created",
+        "headers": {
+            "Content-Type": "application/json"
+        }
+    }
+}
