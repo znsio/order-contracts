@@ -1,5 +1,5 @@
 schema {
-  query: Query
+  query: Query 
   mutation: Mutation
 }
 
@@ -8,6 +8,7 @@ enum ProductType {
   book
   food
   other
+  another 
 }
 
 type Query {
