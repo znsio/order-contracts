@@ -1,0 +1,8 @@
+{
+  "rules": [
+    "defined-types-are-used",
+    "deprecations-have-a-reason",
+    "interface-fields-sorted-alphabetically",
+    "relay-connection-types-spec"
+  ]
+}

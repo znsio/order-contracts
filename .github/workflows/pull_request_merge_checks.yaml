@@ -1,27 +1,31 @@
-name: CI
+name: API Contracts CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build:
+  detect-changes:
     runs-on: ubuntu-latest
-    name: Check API Contracts
+    outputs:
+      openapi_changed: ${{ steps.changed-files-specific.outputs.any_changed }}
+      graphql_changed: ${{ steps.changed-graphqls-files.outputs.any_changed }}
+      examples_changed: ${{ steps.changed-examples.outputs.any_changed }}
+      changed_graphql_files: ${{ steps.changed-graphqls-files.outputs.all_changed_files }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # OR "2" -> To retrieve the preceding commit.
-
-      - uses: actions/setup-node@v2
+          fetch-depth: 0
+      
+      - name: Setup Node
+        uses: actions/setup-node@v2
         with:
           node-version: '20'
 
-      - name: Get changed yaml files
+      - name: Detect OpenAPI Changes
         id: changed-files-specific
         uses: tj-actions/changed-files@v34
         with:
@@ -29,24 +33,75 @@ jobs:
             io/**/*.yaml
             io/**/*.yml
             io/**/*.json
-          files_ignore: kafka.yaml #skipping it as async is under private-beta
+          files_ignore: kafka.yaml
 
-      - name: Get changed GraphQLS files
+      - name: Detect GraphQL Changes
         id: changed-graphqls-files
         uses: tj-actions/changed-files@v34
         with:
           files: |
             io/**/*.graphqls
-  
-      - name: Install Spectral Linter
-        if: steps.changed-files-specific.outputs.any_changed == 'true'
-        run: npm install -g @stoplight/spectral-cli
 
-      - name: Run Spectral linter on changed files
-        if: steps.changed-files-specific.outputs.any_changed == 'true'
+      - name: Detect Examples Changes
+        id: changed-examples
+        uses: tj-actions/changed-files@v34
+        with:
+          files: |
+            **/*_examples/**/*.json
+            **/*_examples/**/*.yaml
+
+  lint:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.openapi_changed == 'true' || needs.detect-changes.outputs.graphql_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+          
+      - name: Install Spectral
+        if: needs.detect-changes.outputs.openapi_changed == 'true'
+        run: npm install -g @stoplight/spectral-cli
+        
+      - name: Run Spectral Linter for OpenAPI
+        if: needs.detect-changes.outputs.openapi_changed == 'true'
         run: |
-          echo "Running Spectral linter on: ${{ steps.changed-files-specific.outputs.all_changed_files }}"
+          echo "Running Spectral linter on changed OpenAPI files"
           spectral lint io/**/*.yaml
+
+      - name: Install GraphQL Schema Linter
+        if: needs.detect-changes.outputs.graphql_changed == 'true'
+        run: npm install -g graphql-schema-linter
+
+      - name: Run GraphQL Schema Linter
+        if: needs.detect-changes.outputs.graphql_changed == 'true'
+        run: |
+          echo "Running GraphQL schema linter on changed files"
+          for file in ${{ needs.detect-changes.outputs.changed_graphql_files }}; do
+            echo "Linting $file..."
+            graphql-schema-linter "$file"
+          done
+
+  
+
+  examples-validation:
+    needs: [detect-changes]
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.openapi_changed == 'true' || needs.detect-changes.outputs.examples_changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # - name: Validate OpenAPI Examples
+      #   run: |
+      #     docker run -v "$(pwd):/central-contract-repo:rw" \
+      #       --env-file env.list \
+      #       --entrypoint /bin/sh znsio/specmatic \
+      #       -c "git config --global --add safe.directory /central-contract-repo && cd /central-contract-repo && java -jar /usr/src/app/specmatic.jar examples --validate io/**/*.yaml"
 
       - name: Validate GraphQL examples
         run: |
@@ -54,34 +109,57 @@ jobs:
             --entrypoint /bin/sh \
             znsio/specmatic-graphql-trial \
             -c "cd /central-contract-repo && java -jar /usr/src/app/specmatic-graphql.jar examples validate --spec-file io/specmatic/examples/store/graphql/products_bff.graphqls"
-      
-      - name: Create environment file
-        run: |
-            # echo "GITHUB_REF=${{ github.ref }}" >> env.list
-            echo "GITHUB_SHA=${{ github.sha }}" >> env.list
-            echo "GITHUB_REPOSITORY=${{ github.repository }}" >> env.list
-            echo "GITHUB_ACTOR=${{ github.actor }}" >> env.list
-            echo "GITHUB_WORKFLOW=${{ github.workflow }}" >> env.list
-            echo "GITHUB_HEAD_REF=${{ github.head_ref }}" >> env.list
-            if [ -z "${{ github.base_ref }}" ]; then
-                echo "GITHUB_BASE_REF=${{ github.ref }}" | sed 's/refs\/heads\///' >> env.list
-            else
-              echo "GITHUB_BASE_REF=${{ github.base_ref }}" >> env.list
-            fi     
 
-      - name: Run OpenAPI backward compatibility check on changed files
-        if: steps.changed-files-specific.outputs.any_changed == 'true'
+  compatibility:
+    needs: [detect-changes]
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.openapi_changed == 'true' || needs.detect-changes.outputs.graphql_changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  
+
+      # Create env.list file before running Docker
+      - name: Create Environment File
+        run: |
+          echo "GITHUB_SHA=${{ github.sha }}" >> env.list
+          echo "GITHUB_REPOSITORY=${{ github.repository }}" >> env.list
+          echo "GITHUB_ACTOR=${{ github.actor }}" >> env.list
+          echo "GITHUB_WORKFLOW=${{ github.workflow }}" >> env.list
+          echo "GITHUB_HEAD_REF=${{ github.head_ref }}" >> env.list
+          if [ -z "${{ github.base_ref }}" ]; then
+              echo "GITHUB_BASE_REF=${{ github.ref }}" | sed 's/refs\/heads\///' >> env.list
+          else
+            echo "GITHUB_BASE_REF=${{ github.base_ref }}" >> env.list
+          fi
+
+      - name: OpenAPI Compatibility Check
+        if: needs.detect-changes.outputs.openapi_changed == 'true'
         run: |
           docker run -v "$(pwd):/central-contract-repo:rw" \
             --env-file env.list \
             --entrypoint /bin/sh znsio/specmatic \
             -c "git config --global --add safe.directory /central-contract-repo && cd /central-contract-repo && java -jar /usr/src/app/specmatic.jar backward-compatibility-check --base-branch origin/main"
 
-      - name: Run GraphQL backward compatibility check on changed files
-        if: steps.changed-graphqls-files.outputs.any_changed == 'true'
+      - name: GraphQL Compatibility Check
+        if: needs.detect-changes.outputs.graphql_changed == 'true'
         run: |
           docker run -v "$(pwd):/central-contract-repo:rw" \
             --env-file env.list \
             --entrypoint /bin/sh \
             znsio/specmatic-graphql-trial \
-            -c "git config --global --add safe.directory /central-contract-repo && cd /central-contract-repo && java -jar /usr/src/app/specmatic-graphql.jar backward-compatibility-check --base-branch origin/main"
+            -c "git config --global --add safe.directory /central-contract-repo && cd /central-contract-repo && java -jar /usr/bin/specmatic-graphql.jar backwardCompatibilityCheck"
+
+  summary:
+    needs: [lint, examples-validation, compatibility]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Pipeline Status
+        run: |
+          if [[ "${{ needs.lint.result }}" == "failure" || \
+                "${{ needs.examples-validation.result }}" == "failure" || \
+                "${{ needs.compatibility.result }}" == "failure" ]]; then
+            exit 1
+          fi
