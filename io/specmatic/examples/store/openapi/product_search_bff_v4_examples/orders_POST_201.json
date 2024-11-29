@@ -1,0 +1,17 @@
+{
+  "http-request": {
+    "path": "/orders",
+    "method": "POST",
+    "body": {
+      "productid": 1,
+      "count": 2
+    }
+  },
+  "http-response": {
+    "status": 201,
+    "body": {
+      "id": 1
+    },
+    "status-text": "CREATED"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "http-request": {
+    "path": "/findAvailableProducts",
+    "method": "GET",
+    "query": {
+      "type": true
+    },
+    "headers": {
+      "pageSize": "20"
+    },
+    "body": ""
+  },
+  "http-response": {
+    "status": 400,
+    "body": {
+      "timestamp": "2020-06-02T12:00:00.000+00:00",
+      "status": 400,
+      "error": "Bad Request",
+      "message": "Bad Request"
+    },
+    "status-text": "Bad Request"
+  }
+}

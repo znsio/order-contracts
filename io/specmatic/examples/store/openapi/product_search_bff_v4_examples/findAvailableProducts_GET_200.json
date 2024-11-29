@@ -1,0 +1,25 @@
+{
+  "http-request": {
+    "path": "/findAvailableProducts",
+    "method": "GET",
+    "query": {
+      "type": "other"
+    },
+    "headers": {
+      "pageSize": "20"
+    },
+    "body": ""
+  },
+  "http-response": {
+    "status": 200,
+    "body": [
+      {
+        "name": "iPhone",
+        "id": 1,
+        "type": "gadget",
+        "inventory": 100
+      }
+    ],
+    "status-text": "OK"
+  }
+}
