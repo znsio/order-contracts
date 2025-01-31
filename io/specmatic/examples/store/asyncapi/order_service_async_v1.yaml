@@ -28,12 +28,8 @@ components:
       payload:
         type: object
         required:
-          - id
           - orderItems
         properties:
-          id:
-            description: Unique identifier of the order request
-            type: number
           orderItems:
             type: array
             items:
@@ -55,7 +51,6 @@ components:
       examples:
         - name: NEW_ORDER
           payload:
-            id: 12345
             orderItems:
               - id: 1
                 name: "Macbook"
@@ -75,7 +70,7 @@ components:
           - totalAmount
           - status
         properties:
-          orderRequestId:
+          id:
             type: integer
           totalAmount:
             type: number
@@ -89,6 +84,7 @@ components:
       examples:
         - name: NEW_ORDER
           payload:
+            id: 1
             totalAmount: 3000.00
             status: "PROCESSED"
     Notification:
