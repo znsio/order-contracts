@@ -22,7 +22,7 @@ paths:
                 - inventory
               properties:
                 name:
-                  type: string
+                  type: number
                 type:
                   type: string
                   enum:
